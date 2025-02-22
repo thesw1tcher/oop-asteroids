@@ -20,15 +20,15 @@ class Asteroid:
     def move(self):
         self.x += self.speed_x
         self.y += self.speed_y
-
+        fl = 0
         if self.x - self.radius <= 0 or self.x + self.radius >= WIDTH:
-            if self.__class__ == Comet:
-                self.reduce_size()
             self.speed_x *= -1
+            fl = 1
+
         if self.y - self.radius <= 0 or self.y + self.radius >= HEIGHT:
-            if self.__class__ == Comet:
-                self.reduce_size()
             self.speed_y *= -1
+            fl = 1
+        return fl
 
     def check_collision(self, other):
         return math.hypot(self.x - other.x, self.y - other.y) <= self.radius + other.radius
@@ -37,10 +37,8 @@ class Asteroid:
         if self.check_collision(other):
             self.speed_x, other.speed_x = other.speed_x, self.speed_x
             self.speed_y, other.speed_y = other.speed_y, self.speed_y
-            if self.__class__ == Comet:
-                self.reduce_size()
-            if other.__class__ == Comet:
-                other.reduce_size()
+            return 1
+        return 0
 
     def draw(self, surface):
         pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), self.radius)
@@ -61,10 +59,16 @@ class Comet(Asteroid):
     def reduce_size(self):
         if self.radius > 5:
             self.radius *= 0.75
+    def resolve_collision(self, other):
+        if Asteroid.resolve_collision(self, other): # оверрайд метода родительского класса, при этом вызывая его же
+            self.reduce_size()
+            if other.__class__ == Comet:
+                other.reduce_size()
+    def move(self):
+        if Asteroid.move(self):
+            self.reduce_size()
 
-
-
-asteroids = [Asteroid() for _ in range(5)]
+asteroids = [Asteroid() for _ in range(2)]
 blackholes = [Blackhole()]
 comets = [Comet()]
 objs = asteroids + comets
@@ -84,10 +88,7 @@ while 1:
         blackhole.move()
         blackhole.draw(screen)
 
-    #asteroids = [a for a in asteroids if not any(blackhole.check_collision(a) for blackhole in blackholes)]
-    #comets = [c for c in comets if not any(blackhole.check_collision(c) for blackhole in blackholes)]
     objs = [obj for obj in objs if not any(blackhole.check_collision(obj) for blackhole in blackholes)]
-    #blackholes = [b for b in blackholes if not any(blackhole.check_collision(b) for blackhole in blackholes)]
 
     for i, obj in enumerate(objs):
         for j in range(i + 1, len(objs)):
